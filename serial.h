@@ -20,18 +20,32 @@
 */
 
 /* This code was initially inspired by the wiring_serial module by David A. Mellis which
-   used to be a part of the Arduino project. */ 
+   used to be a part of the Arduino project. */
 
 #ifndef serial_h
 #define serial_h
 
+#include <avr/power.h>
+#include <avr/io.h>
+#include <avr/wdt.h>
+#include <avr/interrupt.h>
+#include <string.h>
+#include <stdio.h>
+
+void EVENT_USB_Device_Connect(void);
+void EVENT_USB_Device_Disconnect(void);
+void EVENT_USB_Device_ConfigurationChanged(void);
+void EVENT_USB_Device_ControlRequest(void);
+void EVENT_CDC_Device_ControLineStateChanged();
+
 #define SERIAL_NO_DATA 0xff
 
-void serial_init(long baud);
+void serial_init();
 
 void serial_write(uint8_t data);
 
 uint8_t serial_read();
+void serial_tick();
 
 // Reset and empty data in read buffer. Used by e-stop and reset.
 void serial_reset_read_buffer();

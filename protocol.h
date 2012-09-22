@@ -28,13 +28,14 @@
 #define STATUS_FLOATING_POINT_ERROR 4
 #define STATUS_MODAL_GROUP_VIOLATION 5
 #define STATUS_INVALID_COMMAND 6
+#define STATUS_SILENT 7
 
 // Initialize the serial protocol
 void protocol_init();
 
 // Read command lines from the serial port and execute them as they
-// come in. Blocks until the serial buffer is emptied. 
-void protocol_process();
+// come in. Blocks until the serial buffer is emptied.
+void protocol_process(uint8_t c);
 
 // Executes one line of input according to protocol
 uint8_t protocol_execute_line(char *line);
