@@ -35,58 +35,57 @@ void spindle_init()
   current_direction = 0;
   SPINDLE_ENABLE_DDR |= (1<<SPINDLE_ENABLE_BIT);
   SPINDLE_DIRECTION_DDR |= (1<<SPINDLE_DIRECTION_BIT);
-  spindle_stop();
+  spindle_run(0, 0);
 }
 
-int spindle_on = 0, spindle_where = 0, spindle_up, spindle_mult = 2, spindle_initial;
-void spindle_stop()
-{
-  spindle_up = -1;
+int spindle_where = 2000, spindle_up, phase=0;
+uint16_t speed = 0;
+void spindle_stop() {
+  spindle_up = -50;
 }
 
 
-ISR(TIMER1_OVF_vect)
-{
+ISR(TIMER1_OVF_vect) {
 
+   spindle_where+=spindle_up;
+   if (spindle_up < 0 && spindle_where <= 2000) {
+    //TCCR1B = 0;
+    spindle_where = 2000;
+   } else {
 
-   if (!spindle_on) {
-    SPINDLE_ENABLE_PORT |= 1<<SPINDLE_ENABLE_BIT;
-    spindle_on = 1;
-
-    if (spindle_up > 0) {
-      if (spindle_where < 32000) {
-        if (spindle_initial > 128) {
-          spindle_where+=spindle_mult;
-          spindle_mult++;
-        } else {
-          spindle_initial+=8;
-          spindle_where+=1;
-        }
-      }
-    } else if (spindle_up < 0) {
-      spindle_where-=32;
+    if (spindle_where > speed) {
+      spindle_where = speed;
     }
 
-    TCNT1  = (MAX) - spindle_where; // Reload timer with precalculated value
-   } else {
-     SPINDLE_ENABLE_PORT &= ~(1<<SPINDLE_ENABLE_BIT);
-     spindle_on = 0;
-     TCNT1  = MAX-2960;
-   }
+    if (phase) {
+      TCNT1 = MAX-(40000 - spindle_where);
+      SPINDLE_ENABLE_PORT &= ~(1<<SPINDLE_ENABLE_BIT);
+    } else {
+      SPINDLE_ENABLE_PORT |= 1<<SPINDLE_ENABLE_BIT;
+      TCNT1 = MAX-spindle_where;
+    }
 
-   if (spindle_up == -1 && spindle_where < 32) {
-    TCCR1B = 0;
+     phase = (phase) ? 0 : 1;
    }
-
 }
 
-void spindle_run(int8_t direction) //, uint16_t rpm)
+void spindle_run(int8_t direction, uint16_t rpm)
 {
-  spindle_up = 1;
-  spindle_initial = 0;
-  spindle_where=16650;
-  spindle_mult=1;
   TIMSK1 |= (1 << TOIE1); // Enable overflow interrupt
-  TCNT1 = 0; // Preload timer with precalculated value
-  TCCR1B |= (1 << CS10);
+  TCNT1 = 0;//MAX-(20000-spindle_where); // Preload timer with precalculated value
+  TCCR1B |= (1 << CS11);
+
+  if (direction && rpm) {
+    spindle_up = 5;
+
+    // Using a bigfoot 160:
+    //  245KV @ 34v DC = 8330rpm
+    //  minimal cycle time: 2.5ms
+    //  max cycle time: 1.1ms
+    //  1100/8330 = 0.13205282112845138 step size
+
+    speed = rpm*0.13205282112845138 + 2500;
+  } else {
+    spindle_stop();
+  }
 }
