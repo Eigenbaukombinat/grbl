@@ -29,6 +29,8 @@
 static uint8_t current_direction;
 
 #define MAX 65535
+#define WHERE_OFFSET 40000
+#define WHERE_BASELINE 2000
 
 void spindle_init()
 {
@@ -41,7 +43,7 @@ void spindle_init()
 int spindle_where = 2000, spindle_up, phase=0;
 uint16_t speed = 0;
 void spindle_stop() {
-  spindle_up = -50;
+  spindle_up = -5;
 }
 
 
@@ -49,7 +51,7 @@ ISR(TIMER1_OVF_vect) {
 
    spindle_where+=spindle_up;
    if (spindle_up < 0 && spindle_where <= 2000) {
-    //TCCR1B = 0;
+    TCCR1B = 0;
     spindle_where = 2000;
    } else {
 
@@ -58,7 +60,7 @@ ISR(TIMER1_OVF_vect) {
     }
 
     if (phase) {
-      TCNT1 = MAX-(40000 - spindle_where);
+      TCNT1 = MAX-(WHERE_OFFSET - spindle_where);
       SPINDLE_ENABLE_PORT &= ~(1<<SPINDLE_ENABLE_BIT);
     } else {
       SPINDLE_ENABLE_PORT |= 1<<SPINDLE_ENABLE_BIT;
@@ -72,7 +74,7 @@ ISR(TIMER1_OVF_vect) {
 void spindle_run(int8_t direction, uint16_t rpm)
 {
   TIMSK1 |= (1 << TOIE1); // Enable overflow interrupt
-  TCNT1 = 0;//MAX-(20000-spindle_where); // Preload timer with precalculated value
+  TCNT1 = MAX-(WHERE_OFFSET-spindle_where); // Preload timer with precalculated value
   TCCR1B |= (1 << CS11);
 
   if (direction && rpm) {
@@ -84,7 +86,7 @@ void spindle_run(int8_t direction, uint16_t rpm)
     //  max cycle time: 1.1ms
     //  1100/8330 = 0.13205282112845138 step size
 
-    speed = rpm*0.13205282112845138 + 2500;
+    speed = rpm*0.13205282112845138 + WHERE_BASELINE;
   } else {
     spindle_stop();
   }
