@@ -257,6 +257,10 @@ void mc_go_home()
   mc_line(pulloff_target, settings.homing_seek_rate, false);
   st_cycle_start(); // Move it. Nothing should be in the buffer except this motion. 
   plan_synchronize(); // Make sure the motion completes.
+
+  for (i=0; i<N_AXIS; i++) {
+    sys.position[i] = 0;
+  }
   
   // The gcode parser position circumvented by the pull-off maneuver, so sync position vectors.
   sys_sync_current_position();
